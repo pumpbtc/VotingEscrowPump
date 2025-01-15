@@ -105,6 +105,15 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
         _;
     }
 
+    modifier checkSpecificRewardClaimed(uint256 tokenId) {
+        for (uint256 i = 0; i < rewardTokens.length(); i++) {
+            address rewardToken = rewardTokens.at(i);
+            uint208 amount = rewardForSpecificNft[rewardToken][tokenId];
+            require(amount == 0, "Specific reward not claimed");
+        }
+        _;
+    }
+
     modifier onlyRewardDistributor() {
         require(isRewardDistributor[_msgSender()], "Not reward distributor");
         _;
@@ -140,7 +149,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
     function getRewardTokens() public view returns (address[] memory) {
         address[] memory tokens = new address[](rewardTokens.length());
         for (uint256 i = 0; i < rewardTokens.length(); i++) {
-            tokens[i] = address(bytes20(rewardTokens.at(i)));
+            tokens[i] = rewardTokens.at(i);
         }
         return tokens;
     }
@@ -227,7 +236,12 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
     function merge(
         uint256 tokenIdFrom, 
         uint256 tokenIdTo
-    ) public checkConditions(tokenIdFrom) checkConditions(tokenIdTo) {
+    ) public 
+        checkConditions(tokenIdFrom) 
+        checkConditions(tokenIdTo) 
+        checkSpecificRewardClaimed(tokenIdFrom) 
+        checkSpecificRewardClaimed(tokenIdTo) 
+    {
         // Variables
         uint48 current = SafeCast.toUint48(block.timestamp);
         LockedInfo memory infoFrom = lockedInfo[tokenIdFrom];
@@ -271,7 +285,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
     function split(
         uint256 tokenId, 
         uint208 splitAmount
-    ) public checkConditions(tokenId) {
+    ) public checkConditions(tokenId) checkSpecificRewardClaimed(tokenId) {
         // Variables
         uint48 current = SafeCast.toUint48(block.timestamp);
         require(splitAmount > 0 && splitAmount < lockedInfo[tokenId].amount, "Invalid amount");
@@ -467,7 +481,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
             uint208 weight = votingPowerOfAt(tokenId, weekCursor);
             uint208 total = totalVotingPowerAt(weekCursor);
             for (uint256 i = 0; i < rewardTokens.length(); i++) {
-                address token = address(bytes20(rewardTokens.at(i)));
+                address token = rewardTokens.at(i);
                 uint208 weekTokenReward = rewardPerWeek[token][weekCursor] * weight / total;
                 rewards[i] += weekTokenReward;
             }
@@ -479,7 +493,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
 
         // Transfer rewards
         for (uint256 i = 0; i < rewardTokens.length(); i++) {
-            address token = address(bytes20(rewardTokens.at(i)));
+            address token = rewardTokens.at(i);
             IERC20(token).safeTransfer(_msgSender(), rewards[i]);
         }
 
@@ -494,7 +508,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
     function claimRewardForSpecificNft(uint256 tokenId) public {
         require(_ownerOf(tokenId) == _msgSender(), "Not NFT owner");
         for (uint256 i = 0; i < rewardTokens.length(); i++) {
-            address rewardToken = address(bytes20(rewardTokens.at(i)));
+            address rewardToken = rewardTokens.at(i);
             uint208 amount = rewardForSpecificNft[rewardToken][tokenId];
             if (amount > 0) {
                 IERC20(rewardToken).safeTransfer(_msgSender(), amount);

@@ -277,7 +277,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
         // Events
         emit Merge(
             _msgSender(), tokenIdFrom, tokenIdTo, 
-            infoFrom, infoTo, lockedInfo[tokenIdFrom]
+            infoFrom, infoTo, lockedInfo[tokenIdTo]
         );
     }
 

@@ -408,12 +408,8 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
     function depositRewardForNextWeek(address token, uint208 amount) public onlyRewardDistributor {
         uint48 week = getCurrentNextWeekStart();
         require(rewardTokens.contains(token), "Token not supported");
-        require(
-            rewardPerWeek[token][week] == 0, 
-            "Reward already deposited for this week"
-        );
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        rewardPerWeek[token][week] = amount;
+        rewardPerWeek[token][week] += amount;
         emit RewardDeposited(token, week, amount);
     }
 

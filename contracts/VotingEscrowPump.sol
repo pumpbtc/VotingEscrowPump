@@ -511,8 +511,8 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
             address rewardToken = rewardTokens.at(i);
             uint208 amount = rewardForSpecificNft[rewardToken][tokenId];
             if (amount > 0) {
-                IERC20(rewardToken).safeTransfer(_msgSender(), amount);
                 rewardForSpecificNft[rewardToken][tokenId] = 0;
+                IERC20(rewardToken).safeTransfer(_msgSender(), amount);
                 emit RewardClaimedForSpecificNft(tokenId, rewardToken, amount);
             }
         }

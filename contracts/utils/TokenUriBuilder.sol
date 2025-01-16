@@ -40,6 +40,13 @@ contract TokenUriBuilder {
         (year, month, day) = _daysToDate(timestamp / 86400);
     }
 
+    function _padZero(uint256 number) internal pure returns (string memory) {
+        if (number < 10) {
+            return string(abi.encodePacked("0", number.toString()));
+        }
+        return number.toString();
+    }
+
     function _buildTokenUri(
         uint256 tokenId,
         uint208 amount,
@@ -50,7 +57,7 @@ contract TokenUriBuilder {
 
         (uint256 year, uint256 month, uint256 day) = timestampToDate(uint256(unlockTime));
         string memory date = string(abi.encodePacked(
-            '"', year.toString(), '-', month.toString(), '-', day.toString(), '"'
+            '"', year.toString(), '-', _padZero(month), '-', _padZero(day), '"'
         ));
 
         string memory attributes = string(

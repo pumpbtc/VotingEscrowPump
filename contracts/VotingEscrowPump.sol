@@ -9,13 +9,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 
 import "./utils/WeekMath.sol";
 import "./utils/TokenUriBuilder.sol";
 
 
-contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, TokenUriBuilder {
+contract VotingEscrowPump is ERC721EnumerableUpgradeable, OwnableUpgradeable, WeekMath, TokenUriBuilder {
 
     // ============================== Structs ==============================
 
@@ -82,6 +82,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
 
     function initialize(address pumpToken) initializer public {
         pump = IERC20(pumpToken);
+        __ERC721Enumerable_init();
         __ERC721_init("vePump", "Voting Escrow Pump");
         __Ownable_init(_msgSender());
     }
@@ -252,8 +253,8 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
         uint208 newAmount = infoFrom.amount + infoTo.amount;
         uint48 unlockTime = infoFrom.unlockTime > infoTo.unlockTime ? 
             infoFrom.unlockTime : infoTo.unlockTime;        // Unlock time is the max of the two
-        uint48 lockPeriod = unlockTime - current;
-        uint208 newVotingPower = newAmount * lockPeriod / MAX_TIME;
+        uint208 newVotingPower = infoFrom.votingPower + infoTo.votingPower;
+        uint48 lockPeriod = SafeCast.toUint48(newVotingPower * uint208(MAX_TIME) / newAmount);
         require(lockPeriod >= MIN_TIME && lockPeriod <= MAX_TIME, "Invalid lock period");
 
         // Update locked info
@@ -263,13 +264,9 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
             getCurrentWeekStart(), newVotingPower, false
         );
 
-        // Update voting power
+        // Update voting power (total power remains unchanged)
         nftHistoryVotingPower[tokenIdFrom].push(current, 0);
         nftHistoryVotingPower[tokenIdTo].push(current, newVotingPower);
-        totalHistoryVotingPower.push(
-            current, totalHistoryVotingPower.latest() + newVotingPower
-                - infoFrom.votingPower - infoTo.votingPower
-        );
 
         // Burn old NFT
         _burn(tokenIdFrom);
@@ -305,7 +302,7 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
             getCurrentWeekStart(), splitVotingPower, false
         );
 
-        // Update voting power
+        // Update voting power (total power remains unchanged)
         nftTotalSupply++;
         nftHistoryVotingPower[tokenId].push(current, newVotingPower);
         nftHistoryVotingPower[newTokenId].push(current, splitVotingPower);
@@ -336,10 +333,11 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
         // Update locked info
         uint208 newAmount = info.amount + additionalAmount;
         uint48 remainingTime = info.unlockTime - current;
-        uint208 newVotingPower = newAmount * remainingTime / MAX_TIME;
+        uint208 newVotingPower = info.votingPower + additionalAmount * remainingTime / MAX_TIME;
+        uint48 lockPeriod = SafeCast.toUint48(newVotingPower * uint208(MAX_TIME) / newAmount);
 
         lockedInfo[tokenId].amount = newAmount;
-        lockedInfo[tokenId].lockPeriod = remainingTime;
+        lockedInfo[tokenId].lockPeriod = lockPeriod;
         lockedInfo[tokenId].votingPower = newVotingPower;
 
         // Update voting power
@@ -355,16 +353,17 @@ contract VotingEscrowPump is ERC721Upgradeable, OwnableUpgradeable, WeekMath, To
 
     function extendLock(
         uint256 tokenId, 
-        uint48 newLockPeriod
+        uint48 extraLockPeriod
     ) public checkConditions(tokenId) {
         // Variables
         uint48 current = SafeCast.toUint48(block.timestamp);
-        uint48 newUnlockTime = current + newLockPeriod;
         LockedInfo memory info = lockedInfo[tokenId];
+        uint48 newUnlockTime = info.unlockTime + extraLockPeriod;
+        uint48 newLockPeriod = info.lockPeriod + extraLockPeriod;
 
-        // Extra onditions
-        require(newUnlockTime > info.unlockTime, "Can only extend lock");
-        require(newLockPeriod >= MIN_TIME && newLockPeriod <= MAX_TIME, "Invalid lock period");
+        // Extra conditions
+        require(extraLockPeriod >= WEEK, "Extra lock period too short");
+        require(newLockPeriod >= MIN_TIME && newLockPeriod <= MAX_TIME, "New lock period too long");
 
         // Update locked info
         uint208 newVotingPower = info.amount * newLockPeriod / MAX_TIME;

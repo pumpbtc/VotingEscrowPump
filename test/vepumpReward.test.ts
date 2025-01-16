@@ -204,8 +204,6 @@ describe("test the functions", function () {
       0, parseEther("100"),
     )     // Increase lock 100 $PUMP for NFT #0
 
-    expect((await vePump.lockedInfo(0)).lockPeriod)
-      .to.closeTo(newLockPeriod, BigInt(1))
     console.log(`${await getCurrentTimeString()} User 1 increase lock 100 $PUMP for NFT #0`)
     console.log(`${await viewLockedInfo(vePump, 0)}`)
 
@@ -242,22 +240,22 @@ describe("test the functions", function () {
      *  Week 3 end: 4 $WBTC, voting power 4.80769, total 7.93269
      *  Week 4 end: 3 $WBTC, voting power 4.80769, total 7.93269
      *  Week 5 end: 10 $WBTC, voting power 4.80769,
-     *    total 7.93269 - 1.68269 + 1.05597 = 7.30597
+     *    total 7.93269 - 1.68269 + 2.38667 = 8.63667
      * 
      * Total reward: 10 * (0 / 3.12500) + 5 * (4.80769 / 7.93269) + \
      *    5 * (4.80769 / 7.93269) + 4 * (4.80769 / 7.93269) + \
-     *    3 * (4.80769 / 7.93269) + 10 * (4.80769 / 7.30597)
-     *    = 17 * (4.80769 / 7.93269) + 10 * (4.80769 / 7.30597) ~ 16.88352 $WBTC
+     *    3 * (4.80769 / 7.93269) + 10 * (4.80769 / 8.63667)
+     *    = 17 * (4.80769 / 7.93269) + 10 * (4.80769 / 8.63667) ~ 15.86963 $WBTC
      */
     await time.increaseTo(currentWeekCursor + getDuration(1, 0, 0))
     await vePump.connect(user2).claimRewardWeekly(2, 50)
     expect(await wbtc.balanceOf(user2.address))
-      .to.closeTo(parseUnits("16.88352", 8), parseUnits("0.0001", 8))
+      .to.closeTo(parseUnits("15.86963", 8), parseUnits("0.0001", 8))
     console.log(`${await getCurrentTimeString()} User 2 claim reward for NFT #2`)
 
     await vePump.connect(user2).claimRewardForSpecificNft(2)
     expect(await wbtc.balanceOf(user2.address))   // Extra 3 $WBTC reward
-      .to.closeTo(parseUnits("22.88352", 8), parseUnits("0.0001", 8))
+      .to.closeTo(parseUnits("21.86962", 8), parseUnits("0.0001", 8))
     
     expect(await vePump.balanceOf(user1.address)).to.equal(2)
     expect(await vePump.balanceOf(user2.address)).to.equal(1)

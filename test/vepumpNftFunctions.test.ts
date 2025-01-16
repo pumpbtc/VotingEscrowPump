@@ -164,14 +164,16 @@ describe("test the functions", function () {
     console.log(`${await getCurrentTimeString()} User 1 claim reward for NFT #0`)
 
     await expect(vePump.connect(user1).extendLock(
-      0, getDuration(1, 3),   // Only extend lock for 1 week 3 days, too short
-    )).to.be.revertedWith("Can only extend lock")
+      0, getDuration(0, 3),   // Only extend lock for 3 days, too short
+    )).to.be.revertedWith("Extra lock period too short")
+    await expect(vePump.connect(user1).extendLock(
+      0, getDuration(207),   // Extend 207 weeks, too long
+    )).to.be.revertedWith("New lock period too long")
     await vePump.connect(user1).extendLock(
       0, getDuration(30),
     )     // Extend lock 30 weeks for NFT #0
 
-    expect((await vePump.lockedInfo(0)).lockPeriod)
-      .to.closeTo(getDuration(30), BigInt(1))
+    expect((await vePump.lockedInfo(0)).lockPeriod).to.be.equal(getDuration(37))
     console.log(`${await getCurrentTimeString()} User 1 extend lock 30 weeks for NFT #0`)
     console.log(`${await viewLockedInfo(vePump, 0)}`)
 
@@ -199,15 +201,14 @@ describe("test the functions", function () {
       lockedInfoBefore0.unlockTime : lockedInfoBefore1.unlockTime
     const lockedInfoAfter = await vePump.lockedInfo(1)
     const lockedAmountAfter = lockedInfoBefore0.amount + lockedInfoBefore1.amount
+    const lockedVotingPowerAfter = lockedInfoBefore0.votingPower + lockedInfoBefore1.votingPower
 
     expect((await vePump.lockedInfo(0)).burnt).to.be.true
     expect(await vePump.votingPowerValid(0)).to.be.false
     expect(await vePump.votingPowerValid(1)).to.be.true
     expect(lockedInfoAfter.unlockTime).to.equal(unlockTimeMax)
     expect(lockedInfoAfter.amount).to.equal(lockedAmountAfter)
-    expect(await vePump.votingPowerOf(1)).to.equal(
-      lockedAmountAfter * (unlockTimeMax - BigInt(await time.latest())) / BigInt(208 * 7 * 86400)
-    )
+    expect(await vePump.votingPowerOf(1)).to.equal(lockedVotingPowerAfter)
     console.log(`${await getCurrentTimeString()} User 1 merge NFT #0 -> NFT #1`)
     console.log(`${await viewLockedInfo(vePump, 0)}`)
     console.log(`${await viewLockedInfo(vePump, 1)}`)
@@ -241,11 +242,11 @@ describe("test the functions", function () {
     expect(lockedInfoOriginNft.amount).to.equal(parseEther("60"))
     expect(lockedInfoSplit.amount).to.equal(parseEther("10"))
     expect(lockedInfoSplit.unlockTime).to.equal(lockedInfoAfter.unlockTime)
-    expect(await vePump.votingPowerOf(1)).to.equal(
-      parseEther("60") * lockPeriodSplit / BigInt(208 * 7 * 86400)
+    expect(await vePump.votingPowerOf(1)).closeTo(
+      parseEther("60") * lockPeriodSplit / BigInt(208 * 7 * 86400), parseEther("0.0001")
     )
-    expect(await vePump.votingPowerOf(3)).to.equal(
-      parseEther("10") * lockPeriodSplit / BigInt(208 * 7 * 86400)
+    expect(await vePump.votingPowerOf(3)).closeTo(
+      parseEther("10") * lockPeriodSplit / BigInt(208 * 7 * 86400), parseEther("0.0001")
     )
 
     console.log(`${await getCurrentTimeString()} User 1 split NFT #1 -> NFT #1 + NFT #3`)

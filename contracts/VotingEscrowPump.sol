@@ -102,7 +102,7 @@ contract VotingEscrowPump is ERC721EnumerableUpgradeable, OwnableUpgradeable, We
         require(!info.burnt, "Already burnt");
         require(_ownerOf(tokenId) == _msgSender(), "Not NFT owner");
         require(info.unlockTime > current, "Already unlocked");
-        require(info.weekCursor == currentWeek, "Claim reward first");
+        require(info.weekCursor == currentWeek, "Claim weekly reward first");
         _;
     }
 
@@ -205,9 +205,10 @@ contract VotingEscrowPump is ERC721EnumerableUpgradeable, OwnableUpgradeable, We
     }
 
 
-    function burn(uint256 tokenId) public {
+    function burn(uint256 tokenId) public checkSpecificRewardClaimed(tokenId) {
         // Variables
         uint48 current = SafeCast.toUint48(block.timestamp);
+        uint48 currentWeek = getCurrentWeekStart();
         address from = _ownerOf(tokenId);
         LockedInfo memory info = lockedInfo[tokenId];
 
@@ -215,6 +216,7 @@ contract VotingEscrowPump is ERC721EnumerableUpgradeable, OwnableUpgradeable, We
         require(!info.burnt, "Already burnt");
         require(info.unlockTime < current, "Not matured");
         require(from == _msgSender(), "Not NFT owner");
+        require(info.weekCursor == currentWeek, "Claim weekly reward first");
 
         // Update storage
         lockedInfo[tokenId].burnt = true;

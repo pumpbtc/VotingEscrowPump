@@ -176,7 +176,7 @@ describe("test the functions", function () {
     await time.increaseTo(genesisTimestamp + getDuration(5, 5, 20))
     await expect(vePump.connect(user1).increaseLock(
       0, parseEther("100"),
-    )).to.be.revertedWith("Claim reward first")
+    )).to.be.revertedWith("Claim weekly reward first")
 
     /**
      * Reward $WBTC for NFT #0:

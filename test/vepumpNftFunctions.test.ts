@@ -260,6 +260,7 @@ describe("test the functions", function () {
     expect(await vePump.votingPowerOf(2))
       .to.closeTo(parseEther("4.80769"), parseEther("0.0001"))
 
+    await vePump.connect(user2).claimRewardWeekly(2, 50)
     await vePump.connect(user2).burn(2)
     await expect(vePump.connect(user2).burn(2))
       .to.be.revertedWith("Already burnt")

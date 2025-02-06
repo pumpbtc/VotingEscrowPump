@@ -102,6 +102,12 @@ describe("test the functions", function () {
     expect(votingPowerUser1).to.closeTo(
       parseEther(String(50 * 7 / 208)), parseEther("0.001"),
     )
+    expect(votingPowerUser1).to.equal(
+      await vePump.votingPowerOfOwner(user1.address)
+    )
+    expect(votingPowerUser1).to.equal(
+      await vePump.votingPowerOfOwnerAt(user1.address, genesisTimestamp + getDuration(0, 2, 3))
+    )
 
     console.log(`${await getCurrentTimeString()} User 1 mint $vePUMP[tokenId=0]`)
     console.log(`${await viewLockedInfo(vePump, 0)}`)

@@ -135,6 +135,19 @@ contract VotingEscrowPump is ERC721EnumerableUpgradeable, OwnableUpgradeable, We
         return nftHistoryVotingPower[tokenId].upperLookup(timepoint);
     }
 
+    function votingPowerOfAt(uint256 tokenId, uint48 timepoint) public view returns (uint208) {
+        return nftHistoryVotingPower[tokenId].upperLookup(timepoint);
+    }
+
+    function votingPowerOfOwner(address owner) public view returns (uint208) {
+        uint208 ownerVotingPower = 0;
+        for (uint256 i = 0; i < balanceOf(owner); i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(owner, i);
+            ownerVotingPower += votingPowerOf(tokenId);
+        }
+        return ownerVotingPower;
+    }
+
     function totalVotingPower() public view returns (uint208) {
         return totalHistoryVotingPower.latest();
     }
